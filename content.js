@@ -1,214 +1,207 @@
-// content.js
-
 (() => {
-    // スクリプトが複数回注入されるのを防ぐ
-    if (window.geminiShortcuts) {
-      const existingModal = document.getElementById('gemini-search-modal-container');
-      if (existingModal) existingModal.remove();
+  // スクリプトが既に実行済みの場合は、何もしない（二重実行を防止）
+  if (window.geminiShortcutsLoaded) {
+    // ただし、検索モーダルは再実行でトグル（表示/非表示）させたい場合がある
+    if (window.geminiShortcuts && typeof window.geminiShortcuts.showSearch === 'function') {
+       // showSearch関数は内部で表示/非表示を切り替える
+       window.geminiShortcuts.showSearch();
+    }
+    return;
+  }
+  window.geminiShortcutsLoaded = true;
+
+  // 画面にメッセージを表示するヘルパー関数
+  const showMessage = (message, duration = 3000) => {
+    let container = document.getElementById('gemini-shortcut-notifier');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'gemini-shortcut-notifier';
+      Object.assign(container.style, {
+        position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
+        backgroundColor: '#333', color: 'white', padding: '12px 24px',
+        borderRadius: '8px', zIndex: '10001', opacity: '0',
+        transition: 'opacity 0.3s ease, bottom 0.3s ease',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)', fontSize: '14px', fontFamily: 'sans-serif'
+      });
+      document.body.appendChild(container);
+    }
+    container.textContent = message;
+    container.style.opacity = '1';
+    container.style.bottom = '30px';
+    if (container.timer) clearTimeout(container.timer);
+    container.timer = setTimeout(() => {
+      container.style.opacity = '0';
+      container.style.bottom = '20px';
+    }, duration);
+  };
+
+  // --- 機能の実装 ---
+
+  // 1. モデルを切り替える関数
+  const toggleModel = () => {
+    // モデル名が含まれるボタンを探す (例: "Gemini Pro", "Gemini Flash")
+    const modelSwitcher = Array.from(document.querySelectorAll('button'))
+      .find(btn => btn.textContent.includes('Gemini') && (btn.textContent.includes('Pro') || btn.textContent.includes('Flash')));
+
+    if (!modelSwitcher) {
+      showMessage("モデル切り替えボタンが見つかりません。");
       return;
     }
-  
-    // Geminiの画面上に一時的なメッセージを表示する関数
-    const showMessage = (message, duration = 3000) => {
-      let container = document.getElementById('gemini-shortcut-notifier');
-      if (!container) {
-        container = document.createElement('div');
-        container.id = 'gemini-shortcut-notifier';
-        Object.assign(container.style, {
-          position: 'fixed',
-          bottom: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          backgroundColor: '#3c4043',
-          color: '#e8eaed',
-          padding: '12px 24px',
-          borderRadius: '8px',
-          zIndex: '10000',
-          opacity: '0',
-          transition: 'opacity 0.5s ease-in-out, bottom 0.5s ease-in-out',
-          boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
-          fontSize: '14px',
-          fontFamily: 'Google Sans, sans-serif'
-        });
-        document.body.appendChild(container);
-      }
-      container.textContent = message;
-      container.style.opacity = '1';
-      
-      if (container.timer) clearTimeout(container.timer);
-      
-      container.timer = setTimeout(() => {
-        if(container) container.style.opacity = '0';
-      }, duration);
-    };
-  
-    // モデルを切り替える関数（エラー修正版）
-    const toggleModel = () => {
-      // モデル名に含まれる可能性のある文字列
-      const modelKeywords = ["Pro", "Flash", "Advanced"];
-  
-      // 1. ヘッダー内にあるモデルスイッチャーボタンを探す
-      // :has() は使えないため、全ボタンからJavaScriptで探す、より確実な方法
-      let modelSwitcher = null;
-      const allButtons = document.querySelectorAll('button');
-      for (const btn of allButtons) {
-          const btnText = btn.textContent || "";
-          // "Pro" や "Flash" を含み、メニューを開く機能(aria-haspopup)を持つボタンを候補とする
-          if (modelKeywords.some(keyword => btnText.includes(keyword)) && btn.hasAttribute('aria-haspopup')) {
-              modelSwitcher = btn;
-              break; // 最初に見つかったものを採用
-          }
-      }
-  
-      if (!modelSwitcher) {
-        showMessage("モデルスイッチャーが見つかりません。UIが変更された可能性があります。");
-        console.error("Model switcher button not found. The UI might have changed.");
+
+    const currentModel = modelSwitcher.textContent;
+    modelSwitcher.click();
+
+    setTimeout(() => {
+      const menu = document.querySelector('div[role="menu"]');
+      if (!menu) {
+        showMessage("モデル選択メニューが見つかりません。");
+        modelSwitcher.click(); // メニューを閉じる試み
         return;
       }
-  
-      const currentModelText = modelSwitcher.textContent || "";
-      // 現在のモデルが "Pro" を含むかどうかで判断
-      const isPro = currentModelText.includes("Pro");
-  
-      // 2. メニューを開く
-      modelSwitcher.click();
-  
-      // 3. メニューが表示されるのを待つ
-      setTimeout(() => {
-        // role="menu"を持つメニューを探す
-        const menu = document.querySelector('div[role="menu"]');
-        if (!menu) {
-          showMessage("モデル選択メニューが見つかりません。");
-          console.error("Model selection menu not found.");
-          // 開いたボタンをもう一度クリックしてメニューを閉じる試み
-          if (document.body.contains(modelSwitcher)) modelSwitcher.click();
-          return;
-        }
-        const menuItems = menu.querySelectorAll('button[role="menuitem"]');
-        if (menuItems.length === 0) {
-          showMessage("モデル選択肢が見つかりません。");
-          console.error("Model selection menu items not found in menu.");
-          if (document.body.contains(modelSwitcher)) modelSwitcher.click();
-          return;
-        }
-  
-        // 4. 切り替え先のモデルを決定 (ProならFlashへ、それ以外ならProへ)
-        const targetModelKeyword = isPro ? "Flash" : "Pro";
-        
-        // 5. 切り替え先のボタンを探してクリック
-        const targetButton = Array.from(menuItems).find(item => item.textContent && item.textContent.includes(targetModelKeyword));
-  
-        if (targetButton) {
-          targetButton.click();
-          showMessage(`モデルを ${targetButton.textContent.trim()} に切り替えました。`);
-        } else {
-           showMessage(`${targetModelKeyword} を含むモデルのボタンが見つかりません。`);
-           console.error(`Button for model including '${targetModelKeyword}' not found.`);
-           if (document.body.contains(modelSwitcher)) modelSwitcher.click();
-        }
-      }, 250); // メニュー表示のための待機時間を少し延長
-    };
-  
-    // 新規チャットを開始する関数
-    const newChat = () => {
-      // 「New chat」またはそれに類するリンクを探す
-      const newChatButton = document.querySelector('a[href="/gemini"]');
-      if (newChatButton) {
-        newChatButton.click();
+
+      const isPro = currentModel.includes('Pro');
+      const targetModelKeyword = isPro ? "Flash" : "Pro";
+      
+      const targetButton = Array.from(menu.querySelectorAll('button[role="menuitem"]'))
+        .find(item => item.textContent.includes(targetModelKeyword));
+
+      if (targetButton) {
+        targetButton.click();
+        showMessage(`モデルを ${targetButton.textContent.trim()} に切り替えました。`);
       } else {
-        showMessage("「新しいチャット」ボタンが見つかりません。");
-        console.error("New chat button not found.");
+        showMessage(`${targetModelKeyword}モデルが見つかりませんでした。`);
+        modelSwitcher.click(); // メニューを閉じる試み
       }
-    };
-  
-    // 履歴検索ウィンドウを表示する関数
-    const showSearch = () => {
-      const existingModal = document.getElementById('gemini-search-modal-container');
-      if (existingModal) {
-        existingModal.remove();
-        return;
-      }
-  
-      const historyItems = [];
-      document.querySelectorAll('a[href^="/gemini/chat/"]').forEach(item => {
-        const titleEl = item.querySelector('div, span');
-        if (titleEl && titleEl.textContent) {
-          historyItems.push({ title: titleEl.textContent.trim(), href: item.href });
-        }
-      });
-  
-      if (historyItems.length === 0) {
-        showMessage("チャット履歴がサイドバーに見つかりません。");
-        return;
-      }
-  
-      const modalContainer = document.createElement('div');
-      modalContainer.id = 'gemini-search-modal-container';
-      modalContainer.innerHTML = `
-        <div id="gemini-search-modal">
-          <div id="gemini-search-header">
-            <h3>チャット履歴を検索</h3>
-            <button id="gemini-search-close" title="閉じる">&times;</button>
-          </div>
-          <input type="text" id="gemini-search-input" placeholder="キーワードを入力..." autocomplete="off">
-          <ul id="gemini-search-results"></ul>
+    }, 100); // メニューが表示されるまでの待機時間
+  };
+
+  // 2. 新しいチャットを開始する関数
+  const newChat = () => {
+    // 「新しいチャット」のaria-labelを持つ要素を探すのが確実
+    const newChatButton = document.querySelector('[aria-label="新しいチャット"]') || document.querySelector('[aria-label="New chat"]');
+    if (newChatButton) {
+      newChatButton.click();
+      showMessage("新しいチャットを開始しました。");
+    } else {
+       // aタグでフォールバック
+       const fallbackButton = document.querySelector('a[href="/gemini"]');
+       if (fallbackButton) {
+           fallbackButton.click();
+           showMessage("新しいチャットを開始しました。");
+       } else {
+           showMessage("新しいチャットボタンが見つかりません。");
+       }
+    }
+  };
+
+  // 3. 履歴検索ウィンドウを表示/非表示する関数
+  const showSearch = () => {
+    const existingModal = document.getElementById('gemini-search-modal-container');
+    if (existingModal) {
+      existingModal.remove();
+      // もう一度スクリプトが呼ばれた時のためにフラグをリセット
+      window.geminiShortcutsLoaded = false;
+      return;
+    }
+
+    const historyLinks = Array.from(document.querySelectorAll('a[href^="/gemini/chat/"]'));
+    const historyItems = historyLinks.map(link => {
+        const titleEl = link.querySelector('.truncate'); // タイトルは truncate クラス内にあることが多い
+        return {
+          title: titleEl ? titleEl.textContent.trim() : link.textContent.trim(),
+          href: link.href
+        };
+    }).filter(item => item.title); // タイトルが空でないものだけ
+
+    if (historyItems.length === 0) {
+      showMessage("チャット履歴が見つかりません。");
+      return;
+    }
+    
+    // --- モーダルウィンドウのHTMLを生成 ---
+    const modalContainer = document.createElement('div');
+    modalContainer.id = 'gemini-search-modal-container';
+    document.body.appendChild(modalContainer);
+
+    modalContainer.innerHTML = `
+      <div id="gemini-search-modal">
+        <div id="gemini-search-header">
+          <h3>チャット履歴を検索</h3>
+          <button id="gemini-search-close" title="閉じる">&times;</button>
         </div>
-      `;
-      document.body.appendChild(modalContainer);
-  
-      const input = document.getElementById('gemini-search-input');
-      const resultsList = document.getElementById('gemini-search-results');
-      const closeModal = () => {
-          if(document.getElementById('gemini-search-modal-container')) {
-              document.getElementById('gemini-search-modal-container').remove();
-          }
-          document.removeEventListener('keydown', handleEsc);
-      };
-  
-      const handleEsc = (e) => {
-          if (e.key === "Escape") closeModal();
-      };
-  
-      document.getElementById('gemini-search-close').addEventListener('click', closeModal);
-      modalContainer.addEventListener('click', (e) => {
-        if (e.target === modalContainer) closeModal();
-      });
-      document.addEventListener('keydown', handleEsc);
-  
-      input.addEventListener('input', () => {
-        const query = input.value.toLowerCase();
-        resultsList.innerHTML = '';
-        if (!query) return;
-  
-        const filtered = historyItems.filter(item => item.title.toLowerCase().includes(query));
-  
-        if (filtered.length === 0) {
-          resultsList.innerHTML = '<li class="gemini-search-no-results">一致する結果はありません。</li>';
-        } else {
-          filtered.slice(0, 100).forEach(item => {
-            const li = document.createElement('li');
-            const a = document.createElement('a');
-            a.textContent = item.title;
-            a.href = item.href;
-            a.title = item.title;
-            a.onclick = (e) => {
-              e.preventDefault();
-              window.location.href = item.href;
-              closeModal();
-            };
-            li.appendChild(a);
-            resultsList.appendChild(li);
-          });
-        }
-      });
-      input.focus();
+        <input type="text" id="gemini-search-input" placeholder="キーワードで絞り込み..." autocomplete="off">
+        <ul id="gemini-search-results"></ul>
+      </div>
+    `;
+    
+    // --- イベントリスナーを設定 ---
+    const input = document.getElementById('gemini-search-input');
+    const resultsList = document.getElementById('gemini-search-results');
+
+    const closeModal = () => {
+      const modal = document.getElementById('gemini-search-modal-container');
+      if (modal) {
+        modal.remove();
+      }
+      window.geminiShortcutsLoaded = false; // 次回実行できるようにフラグをリセット
+      document.removeEventListener('keydown', handleEsc);
     };
-  
-    // background.jsから呼び出せるように、各関数をwindowオブジェクトに登録
-    window.geminiShortcuts = {
-      toggleModel,
-      newChat,
-      showSearch,
+
+    const handleEsc = (e) => {
+      if (e.key === "Escape") {
+        closeModal();
+      }
     };
-  })();
-  
+
+    document.getElementById('gemini-search-close').addEventListener('click', closeModal);
+    modalContainer.addEventListener('click', (e) => {
+      if (e.target === modalContainer) {
+        closeModal();
+      }
+    });
+    document.addEventListener('keydown', handleEsc);
+
+    // --- 検索ロジック ---
+    const renderResults = (items) => {
+      resultsList.innerHTML = '';
+      if (items.length === 0) {
+        resultsList.innerHTML = '<li class="gemini-search-no-results">一致する結果はありません。</li>';
+        return;
+      }
+      items.slice(0, 100).forEach(item => { // 最大100件表示
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.textContent = item.title;
+        a.href = item.href;
+        a.title = item.title;
+        a.onclick = (e) => {
+          e.preventDefault();
+          window.location.href = item.href;
+          closeModal();
+        };
+        li.appendChild(a);
+        resultsList.appendChild(li);
+      });
+    };
+
+    input.addEventListener('input', () => {
+      const query = input.value.toLowerCase();
+      if (!query) {
+        renderResults(historyItems); // 入力が空なら全件表示
+        return;
+      }
+      const filtered = historyItems.filter(item => item.title.toLowerCase().includes(query));
+      renderResults(filtered);
+    });
+
+    renderResults(historyItems); // 初期表示
+    input.focus();
+  };
+
+  // background.jsから呼び出せるように、各関数をグローバルオブジェクトに登録
+  window.geminiShortcuts = {
+    toggleModel,
+    newChat,
+    showSearch,
+  };
+})(); 
