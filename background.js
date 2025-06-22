@@ -3,7 +3,8 @@
 chrome.commands.onCommand.addListener((command, tab) => {
   // 「検索」コマンドはどのページからでも実行できるように、特別に処理する
   if (command === "show-search") {
-    chrome.tabs.create({ url: 'https://gemini.google.com/search' });
+    // 現在のタブのURLを更新する
+    chrome.tabs.update(tab.id, { url: 'https://gemini.google.com/search' });
     return;
   }
 
@@ -21,8 +22,9 @@ chrome.commands.onCommand.addListener((command, tab) => {
       functionToExecute = "toggleModel";
       break;
     case "new-chat":
-      functionToExecute = "newChat";
-      break;
+      // 新しいチャットは同じタブで https://gemini.google.com/app に遷移
+      chrome.tabs.update(tab.id, { url: 'https://gemini.google.com/app' });
+      return;
     // show-search は上で処理済み
     default:
       return; // 不明なコマンドは無視

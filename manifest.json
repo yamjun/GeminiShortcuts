@@ -15,8 +15,8 @@
   "commands": {
     "toggle-model": {
       "suggested_key": {
-        "default": "Ctrl+Shift+M",
-        "mac": "Command+Shift+M"
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
       },
       "description": "モデル (Pro/Flash) を切り替えます。"
     },
