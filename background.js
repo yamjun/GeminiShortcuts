@@ -1,6 +1,14 @@
 // background.js
 
 chrome.commands.onCommand.addListener((command, tab) => {
+  // 「検索」コマンドはどのページからでも実行できるように、特別に処理する
+  if (command === "show-search") {
+    chrome.tabs.create({ url: 'https://gemini.google.com/search' });
+    return;
+  }
+
+  // --- 以下はGeminiページ内でのみ動作するコマンド ---
+
   // Geminiのページ以外では動作させない
   if (!tab.url || !tab.url.startsWith("https://gemini.google.com/")) {
     return;
@@ -15,9 +23,7 @@ chrome.commands.onCommand.addListener((command, tab) => {
     case "new-chat":
       functionToExecute = "newChat";
       break;
-    case "show-search":
-      functionToExecute = "showSearch";
-      break;
+    // show-search は上で処理済み
     default:
       return; // 不明なコマンドは無視
   }

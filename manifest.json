@@ -12,19 +12,13 @@
   "background": {
     "service_worker": "background.js"
   },
-  "content_scripts": [
-    {
-      "matches": ["https://gemini.google.com/*"],
-      "css": ["style.css"]
-    }
-  ],
   "commands": {
     "toggle-model": {
       "suggested_key": {
         "default": "Ctrl+Shift+M",
         "mac": "Command+Shift+M"
       },
-      "description": "モデル (Flash/Pro) を切り替えます。"
+      "description": "モデル (Pro/Flash) を切り替えます。"
     },
     "new-chat": {
       "suggested_key": {
@@ -38,7 +32,7 @@
         "default": "Ctrl+Shift+F",
         "mac": "Command+Shift+F"
       },
-      "description": "チャット履歴の検索ウィンドウを開きます。"
+      "description": "検索ページを開きます。"
     }
   },
   "action": {
