@@ -33,19 +33,26 @@
         "mac": "Command+Shift+F"
       },
       "description": "検索ページを開きます。"
+    },
+    "deep-research": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+D",
+        "mac": "Command+Shift+D"
+      },
+      "description": "Deep Researchボタンをトグルします。"
     }
   },
   "action": {
     "default_title": "Gemini Shortcuts",
     "default_icon": {
-      "16": "gemini-html/Google Gemini_files/unnamed.png",
-      "48": "gemini-html/Google Gemini_files/unnamed.png",
-      "128": "gemini-html/Google Gemini_files/unnamed.png"
+      "16": "shortcut-SS.png",
+      "48": "shortcut-SS.png",
+      "128": "shortcut-SS.png"
     }
   },
   "icons": {
-    "16": "gemini-html/Google Gemini_files/unnamed.png",
-    "48": "gemini-html/Google Gemini_files/unnamed.png",
-    "128": "gemini-html/Google Gemini_files/unnamed.png"
+    "16": "shortcut-SS.png",
+    "48": "shortcut-SS.png",
+    "128": "shortcut-SS.png"
   }
 } 

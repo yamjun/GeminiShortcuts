@@ -92,6 +92,26 @@
          if(altButton) altButton.click();
          else showMessage('新規チャットボタンが見つかりません', 3000);
       }
+    },
+
+    /**
+     * Deep Researchボタンをトグルします。
+     */
+    deepResearch: () => {
+      // Deep Researchボタンを特定
+      const btn = Array.from(document.querySelectorAll('button')).find(b => {
+        const label = b.querySelector('.toolbox-drawer-button-label');
+        return label && label.textContent.trim() === 'Deep Research';
+      });
+      if (!btn) {
+        showMessage('Deep Researchボタンが見つかりません', 3000);
+        return;
+      }
+      // aria-pressed属性とis-selectedクラスでON/OFFをトグル
+      const pressed = btn.getAttribute('aria-pressed') === 'true';
+      btn.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+      btn.classList.toggle('is-selected', !pressed);
+      showMessage(`Deep Research: ${pressed ? 'DISABLED' : 'ENABLED'}`, 2000);
     }
   };
 

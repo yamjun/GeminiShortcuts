@@ -25,6 +25,12 @@ chrome.commands.onCommand.addListener((command, tab) => {
       // 新しいチャットは同じタブで https://gemini.google.com/app に遷移
       chrome.tabs.update(tab.id, { url: 'https://gemini.google.com/app' });
       return;
+    case "deep-research":
+      functionToExecute = "deepResearch";
+      break;
+    case "canvas":
+      functionToExecute = "canvas";
+      break;
     // show-search は上で処理済み
     default:
       return; // 不明なコマンドは無視
